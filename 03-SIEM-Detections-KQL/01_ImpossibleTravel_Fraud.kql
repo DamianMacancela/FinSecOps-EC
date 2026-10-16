@@ -1,0 +1,20 @@
+// =================================================================================
+// REGLA 01: Login desde País Inusual / Tor seguido de Transferencia de Alto Valor (< 5 min)
+// Mapeo MITRE ATT&CK: T1078 (Valid Accounts) / T1550.004 (Web Session Cookie)
+// Marco Regulatorio: Norma SEPS/SB Prevención de Fraude en Canales Electrónicos
+// =================================================================================
+let HighRiskCountries = dynamic(["RU", "KP", "IR", "NG", "RO"]);
+let MinFraudAmountUSD = 3000.0;
+let SuspiciousLogins = SigninLogs
+| where ResultType == 0
+| where tostring(LocationDetails.countryOrRegion) in (HighRiskCountries) or RiskLevelDuringSignIn == "high"
+| project LoginTime = TimeGenerated, UserPrincipalName, LoginIP = IPAddress, Country = tostring(LocationDetails.countryOrRegion);
+SuspiciousLogins
+| join kind=inner (
+    ApiGatewayBankingLogs_CL
+    | where Endpoint_s == "/api/v1/transferencias" and todouble(AmountUSD_d) >= MinFraudAmountUSD
+    | project TxTime = TimeGenerated, UserPrincipalName = User_s, AmountUSD = todouble(AmountUSD_d), DestAccount = DestAccount_s
+) on UserPrincipalName
+| where (TxTime - LoginTime) between (0min .. 5min)
+| extend AlertSeverity = "Critical", Compliance = "Norma SEPS/SB Prevención de Fraude en Canales Electrónicos"
+| project LoginTime, TxTime, UserPrincipalName, LoginIP, Country, AmountUSD, DestAccount, AlertSeverity, Compliance

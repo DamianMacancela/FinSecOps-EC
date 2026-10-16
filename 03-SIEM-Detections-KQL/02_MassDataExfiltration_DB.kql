@@ -1,0 +1,18 @@
+// =================================================================================
+// REGLA 02: Exfiltración Masiva de Datos Personales en Core Financiero (>= 500 registros en 5m)
+// Mapeo MITRE ATT&CK: T1005 (Data from Local System) / T1530 (Data from Cloud / Core Repository)
+// Marco Regulatorio: Alerta Art. 40 y 43 LOPDP (Ecuador) / ISO 27001 A.8.12 (DLP)
+// =================================================================================
+let TimeWindow = 5m;
+let RowThreshold = 500;
+let SensitiveTables = dynamic(["Socios_Clientes", "Cuentas_Ahorro", "Tarjetas_Credito", "Cartera_Creditos"]);
+let AuthorizedServiceAccounts = dynamic(["svc_corebanking_prod", "svc_seps_reporter"]);
+AzureDiagnostics
+| where Category == "SQLSecurityAuditEvents" and ActionName_s in ("SELECT", "BULK INSERT", "BCP")
+| where Statement_s has_any (SensitiveTables) and PrincipalName_s !in (AuthorizedServiceAccounts)
+| summarize TotalQueries = count(), TotalRowsExtracted = sum(todouble(ResponseRows_d)),
+    TablesAccessed = make_set(Statement_s), SourceIPs = make_set(ClientIp_s)
+    by PrincipalName_s, ApplicationName_s, bin(TimeGenerated, TimeWindow)
+| where TotalRowsExtracted >= RowThreshold
+| extend Severity = iff(TotalRowsExtracted > 2500, "Critical", "High"),
+    LegalTrigger = "ALERTA LOPDP Art. 43: Evaluar Notificación de Vulneración de Datos Personales"
