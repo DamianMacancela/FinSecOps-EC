@@ -1,0 +1,50 @@
+name: FinSecOps-EC DevSecOps & Forensic CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-and-forensics:
+    name: DevSecOps SAST, Forensics & Unit Testing
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. Checkout Código Fuente
+      uses: actions/checkout@v4
+
+    - name: 2. Configurar Entorno Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: 3. Ejecutar Pruebas Unitarias del Motor SOAR y Verificación de Merkle Tree
+      run: |
+        python -m unittest tests/test_soar_engine.py -v
+
+    - name: 4. Ejecutar Simulación de Campaña Ofensiva y Generación de Telemetría
+      run: |
+        python 04-SOAR-and-Triage-Automation/simulate_attack_campaign.py
+
+    - name: 5. Validar Estructura Canónica de Inteligencia de Amenazas STIX 2.1
+      run: |
+        python -c "
+        import json
+        with open('04-SOAR-and-Triage-Automation/incident_bundle.stix.json') as f:
+            data = json.load(f)
+            assert data['type'] == 'bundle'
+            assert len(data['objects']) > 0
+            print('[+] STIX 2.1 Bundle Valido con', len(data['objects']), 'incidentes.')
+        "
+
+    - name: 6. Escaneo Estático de Seguridad de Código (SAST)
+      run: |
+        pip install bandit
+        bandit -r 04-SOAR-and-Triage-Automation/ -ll -ii
+
+    - name: 7. Verificación de Higiene de Secretos (DevSecOps)
+      run: |
+        # Garantizar que no existan variables .env ni certificados pem rastreados
+        ! find . -type f \( -name "*.env" -o -name "*.key" -o -name "*.pem" \) | grep -q .
