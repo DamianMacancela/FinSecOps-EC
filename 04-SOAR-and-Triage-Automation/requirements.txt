@@ -1,0 +1,2 @@
+# Python 3.10+ Standard Library (json, hashlib, pathlib, datetime)
+# Cero dependencias externas para ejecucion aislada y segura en entornos bancarios

@@ -1,0 +1,36 @@
+[
+    {
+        "timestamp": "2026-10-16T21:44:29.971021+00:00",
+        "event_id": "EVT-9001",
+        "source": "CoreBanking_DB",
+        "user": "svc_corebanking_prod",
+        "ip": "10.20.1.15",
+        "action": "SELECT",
+        "table": "Cuentas_Ahorro",
+        "rows_returned": 1,
+        "status": "SUCCESS"
+    },
+    {
+        "timestamp": "2026-10-16T21:51:29.971021+00:00",
+        "event_id": "EVT-9002",
+        "source": "BancaWeb_WAF",
+        "user": "socio_azuay_8841",
+        "ip": "185.220.101.45",
+        "country": "RU",
+        "action": "API_TRANSFER_REQUEST",
+        "amount_usd": 9500.0,
+        "mfa_Validation": "BYPASSED_TOKEN_REPLAY",
+        "status": "FLAGGED"
+    },
+    {
+        "timestamp": "2026-10-16T21:54:29.971021+00:00",
+        "event_id": "EVT-9003",
+        "source": "CoreBanking_DB",
+        "user": "dba_temp_support",
+        "ip": "192.168.50.88",
+        "action": "SELECT_BULK",
+        "table": "Socios_Clientes",
+        "rows_returned": 4850,
+        "status": "SUCCESS"
+    }
+]
