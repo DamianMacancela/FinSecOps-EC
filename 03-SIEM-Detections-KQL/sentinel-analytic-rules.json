@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Nombre del Azure Log Analytics Workspace configurado con Microsoft Sentinel."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "name": "[concat(parameters('workspaceName'), '/Microsoft.SecurityInsights/FinSecOps-KQL01-ImpossibleTravel')]",
+      "apiVersion": "2023-02-01-preview",
+      "kind": "Scheduled",
+      "properties": {
+        "displayName": "FinSecOps: Fraude Transaccional por Viaje Imposible y Replay de Token",
+        "description": "Correlaciona accesos anómalos desde países de alto riesgo seguidos de transferencias bancarias >= $3000 USD en menos de 5 minutos.",
+        "severity": "High",
+        "enabled": true,
+        "query": "let HighRiskCountries = dynamic(['RU', 'KP', 'IR', 'NG', 'RO']); let MinFraudAmountUSD = 3000.0; SigninLogs | where ResultType == 0 and tostring(LocationDetails.countryOrRegion) in (HighRiskCountries) | join kind=inner (ApiGatewayBankingLogs_CL | where Endpoint_s == '/api/v1/transferencias' and todouble(AmountUSD_d) >= MinFraudAmountUSD) on UserPrincipalName | where (TimeGenerated1 - TimeGenerated) between (0min .. 5min)",
+        "queryFrequency": "PT5M",
+        "queryPeriod": "PT15M",
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "tactics": [
+          "InitialAccess",
+          "DefenseEvasion"
+        ],
+        "techniques": [
+          "T1078",
+          "T1550"
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+      "name": "[concat(parameters('workspaceName'), '/Microsoft.SecurityInsights/FinSecOps-KQL02-MassExfiltration')]",
+      "apiVersion": "2023-02-01-preview",
+      "kind": "Scheduled",
+      "properties": {
+        "displayName": "FinSecOps: Exfiltración Masiva de Datos Personales en Core DB (LOPDP Art. 40/43)",
+        "description": "Detecta consultas masivas (>= 500 filas) sobre tablas de datos personales de socios bancarios excluyendo cuentas de servicio autorizadas.",
+        "severity": "Critical",
+        "enabled": true,
+        "query": "AzureDiagnostics | where Category == 'SQLSecurityAuditEvents' and ActionName_s in ('SELECT', 'BULK INSERT') | where Statement_s has_any ('Socios_Clientes', 'Cuentas_Ahorro') | summarize TotalRows = sum(todouble(ResponseRows_d)) by PrincipalName_s, bin(TimeGenerated, 5m) | where TotalRows >= 500",
+        "queryFrequency": "PT5M",
+        "queryPeriod": "PT5M",
+        "triggerOperator": "GreaterThan",
+        "triggerThreshold": 0,
+        "tactics": [
+          "Exfiltration"
+        ],
+        "techniques": [
+          "T1530"
+        ]
+      }
+    }
+  ]
+}

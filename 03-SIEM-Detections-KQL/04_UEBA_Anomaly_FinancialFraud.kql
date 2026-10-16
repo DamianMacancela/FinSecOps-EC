@@ -1,0 +1,40 @@
+// =========================================================================================
+// REGLA 04: UEBA ANOMALY CORRELATION - COMPORTAMIENTO FINANCIERO ATÍPICO
+// Tecnología: Microsoft Sentinel Machine Learning / UEBA (User & Entity Behavior Analytics)
+// Esquema: Sentinel BehaviorAnalytics & Anomalies Table (Estándar 2026-2027)
+// Mapeo MITRE ATT&CK: T1078.004 (Cloud Accounts) / T1539 (Steal Web Session Cookie)
+// =========================================================================================
+
+let LookbackPeriod = 7d;
+let AnomalyScoreThreshold = 75; // Umbral de confianza del modelo de Machine Learning
+let TargetCoreSystems = dynamic(["CoreFinanciero", "TransferenciasSPI", "BancaEmpresarial"]);
+
+Anomalies
+| where TimeGenerated >= ago(LookbackPeriod)
+| where RuleStatus == "Active"
+| where todouble(AnomalyScore) >= AnomalyScoreThreshold
+| extend TargetUser = tolower(tostring(CustomDimensions["TargetUser"])),
+         DeviceVendor = tostring(CustomDimensions["DeviceVendor"])
+| join kind=inner (
+    BehaviorAnalytics
+    | where TimeGenerated >= ago(LookbackPeriod)
+    | where ActivityType in ("LogOn", "ResourceAccess", "PrivilegeElevation")
+    | extend BlastRadiusScore = HighRiskEngagementScore
+    | project TimeGenerated, UsersPrincipalName = tolower(UserPrincipalName), 
+              ActionType, ActivityType, SourceIPAddress, Country, BlastRadiusScore
+) on $left.TargetUser == $right.UsersPrincipalName
+| where ActivityType == "ResourceAccess" and ActionType has_any (TargetCoreSystems)
+| summarize 
+    MaxAnomalyScore = max(todouble(AnomalyScore)),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    DistinctIPs = make_set(SourceIPAddress),
+    AnomalyReasons = make_set(Description)
+    by TargetUser, Country, BlastRadiusScore
+| where MaxAnomalyScore >= 85 or BlastRadiusScore >= 80
+| extend 
+    Severity = "High",
+    MITRETactic = "Defense Evasion / Initial Access",
+    RegulatoryFlag = "Norma SEPS Gestión de Riesgo Operativo - Desviación Heurística de Perfil Transaccional",
+    SOAR_Trigger = "Disparar aislamiento preventivo de sesión en Azure AD / Entra ID"
+| project FirstSeen, LastSeen, TargetUser, Country, MaxAnomalyScore, BlastRadiusScore, DistinctIPs, AnomalyReasons, Severity, RegulatoryFlag

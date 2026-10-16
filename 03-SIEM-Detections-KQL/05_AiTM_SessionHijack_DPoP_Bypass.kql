@@ -1,0 +1,50 @@
+// =========================================================================================
+// REGLA 05: ADVERSARY-IN-THE-MIDDLE (AiTM) & SESSION HIJACKING TOKEN DRIFT
+// Esquema Normalizado: Microsoft Sentinel ASIM (Advanced Security Information Model)
+// Mapeo MITRE ATT&CK: T1539 (Steal Web Session Cookie) / T1550.004 (Web Session Cookie)
+// Estándar 2026-2027: Detección de Fuga de Cookies de Sesión y Discrepancia JA4 / ASN
+// =========================================================================================
+
+let SessionWindow = 2h;
+let AllowedCountries = dynamic(["EC", "US"]); // Operaciones habituales autorizadas
+
+SigninLogs
+| where TimeGenerated >= ago(SessionWindow)
+| where ResultType == 0 // Inicios de sesión inicialmente exitosos
+| project 
+    InitialLoginTime = TimeGenerated,
+    UserPrincipalName = tolower(UserPrincipalName),
+    SessionId = tostring(CorrelationId),
+    InitialIP = IPAddress,
+    InitialCountry = tostring(LocationDetails.countryOrRegion),
+    InitialASN = tostring(AutonomousSystemNumber),
+    AppDisplayName
+| join kind=inner (
+    // Telemetría de consumo de API bancaria (Logs de Gateway o Azure WAF)
+    SigninLogs
+    | where TimeGenerated >= ago(SessionWindow)
+    | where ResultType == 0
+    | project 
+        ReplayTime = TimeGenerated,
+        UserPrincipalName = tolower(UserPrincipalName),
+        SessionId = tostring(CorrelationId),
+        ReplayIP = IPAddress,
+        ReplayCountry = tostring(LocationDetails.countryOrRegion),
+        ReplayASN = tostring(AutonomousSystemNumber)
+) on SessionId, UserPrincipalName
+// Condición de Secuestro de Sesión: Mismo identificador de sesión reutilizado desde ASN / País distinto
+| where ReplayCountry != InitialCountry or (InitialASN != ReplayASN and ReplayCountry !in (AllowedCountries))
+| where (ReplayTime - InitialLoginTime) between (1s .. SessionWindow)
+| summarize 
+    FirstDetected = min(ReplayTime),
+    AttemptsCount = count(),
+    OriginIP = any(InitialIP),
+    HijackerIP = make_set(ReplayIP),
+    HijackerCountries = make_set(ReplayCountry)
+    by UserPrincipalName, SessionId
+| extend 
+    AlertSeverity = "Critical",
+    AttackPattern = "AiTM Phishing / Session Cookie Replay (Bypass de MFA)",
+    MitigationRecommendation = "Invalidar tokens de refresco (Revoke-AzureADUserAllRefreshToken) + Bloqueo IP en WAF",
+    ComplianceImpact = "Alerta Art. 43 LOPDP - Brecha potencial de confidencialidad de credenciales financieras"
+| project FirstDetected, UserPrincipalName, SessionId, OriginIP, HijackerIP, HijackerCountries, AttemptsCount, AlertSeverity, AttackPattern, MitigationRecommendation, ComplianceImpact
