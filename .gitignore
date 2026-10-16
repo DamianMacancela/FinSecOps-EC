@@ -1,0 +1,30 @@
+# ==========================================
+# HIGIENE DE SEGURIDAD Y ENTORNOS (SECOPS)
+# Evita filtración de secretos o caché local
+# ==========================================
+
+# Entornos virtuales y compilados de Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Credenciales, Certificados y Variables API (NUNCA SUBIR A GITHUB)
+.env
+*.env.local
+*.key
+*.pem
+*.pfx
+secrets.json
+api_keys.txt
+
+# Artefactos del Sistema Operativo Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Configuraciones locales de Editores / IDEs
+.vscode/
+.idea/
