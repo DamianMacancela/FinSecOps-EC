@@ -1,2 +1,11 @@
-# Python 3.10+ Standard Library (json, hashlib, pathlib, datetime)
-# Cero dependencias externas para ejecucion aislada y segura en entornos bancarios
+# =========================================================================
+# FINSECOPS-EC | DEPENDENCIAS Y ENTORNO DEVSECOPS (2026-2027)
+# =========================================================================
+# El motor central (soc_auto_triage.py) utiliza EXCLUSIVAMENTE la librería
+# estándar de Python 3.10+ (cero dependencias externas para producción).
+#
+# Las siguientes librerías son utilizadas para el pipeline CI/CD y SAST:
+bandit>=1.7.8
+flake8>=7.0.0
+pytest>=8.0.0
+stix2>=3.0.1

@@ -1,0 +1,66 @@
+{
+  "type": "bundle",
+  "id": "bundle--c7667f4da48809b623ce2243985fc3ceb9f4",
+  "objects": [
+    {
+      "type": "incident",
+      "spec_version": "2.1",
+      "id": "incident--ca6b35f152eac207f0a1ea1a38b6579c1733",
+      "name": "KQL-01: Fraude Transaccional + Replay de Token de Sesi\u00f3n (AiTM)",
+      "description": "Transferencia de $9500.0 USD sin firma criptogr\u00e1fica DPoP v\u00e1lida.",
+      "severity": "high",
+      "created": "2026-10-16T23:02:17.095441+00:00",
+      "labels": [
+        "financial-fraud",
+        "lopdp-breach",
+        "zero-trust-violation"
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "T1550.004"
+        }
+      ]
+    },
+    {
+      "type": "incident",
+      "spec_version": "2.1",
+      "id": "incident--f08fbdde76da86fef6ccc0ef50223b6838ff",
+      "name": "KQL-02: Exfiltraci\u00f3n Masiva de Registros de Socios en Core DB",
+      "description": "Extracci\u00f3n no autorizada de 4850 registros en tabla Socios_Clientes.",
+      "severity": "critical",
+      "created": "2026-10-16T23:02:17.095453+00:00",
+      "labels": [
+        "financial-fraud",
+        "lopdp-breach",
+        "zero-trust-violation"
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "T1530"
+        }
+      ]
+    },
+    {
+      "type": "incident",
+      "spec_version": "2.1",
+      "id": "incident--db90216d937e6912967782aa9486259a226f",
+      "name": "KQL-03: Asignaci\u00f3n No Autorizada a Grupo de M\u00e1ximo Privilegio",
+      "description": "Cuenta 'shadow_admin_backdoor' elevada a administradores de dominio.",
+      "severity": "critical",
+      "created": "2026-10-16T23:02:17.095459+00:00",
+      "labels": [
+        "financial-fraud",
+        "lopdp-breach",
+        "zero-trust-violation"
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "T1098"
+        }
+      ]
+    }
+  ]
+}

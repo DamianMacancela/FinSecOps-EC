@@ -1,36 +1,52 @@
 [
     {
-        "timestamp": "2026-10-16T21:44:29.971021+00:00",
-        "event_id": "EVT-9001",
-        "source": "CoreBanking_DB",
-        "user": "svc_corebanking_prod",
-        "ip": "10.20.1.15",
-        "action": "SELECT",
-        "table": "Cuentas_Ahorro",
-        "rows_returned": 1,
-        "status": "SUCCESS"
+        "timestamp": "2026-10-16T22:45:09.729550+00:00",
+        "event_id": "RECON-001",
+        "source": "BancaWeb_WAF",
+        "user": "anonymous_scanner",
+        "ip": "185.220.101.45",
+        "country": "RU",
+        "action": "PROBE_API_METHODS",
+        "endpoint": "/api/v1/auth/login",
+        "user_agent": "python-requests/2.31.0",
+        "status": "429_TOO_MANY_REQUESTS",
+        "mitre": "T1595.002"
     },
     {
-        "timestamp": "2026-10-16T21:51:29.971021+00:00",
-        "event_id": "EVT-9002",
-        "source": "BancaWeb_WAF",
+        "timestamp": "2026-10-16T22:52:09.729550+00:00",
+        "event_id": "AUTH-002",
+        "source": "Financial_API_Gateway",
         "user": "socio_azuay_8841",
         "ip": "185.220.101.45",
         "country": "RU",
-        "action": "API_TRANSFER_REQUEST",
+        "action": "API_TRANSFER_EXEC",
         "amount_usd": 9500.0,
-        "mfa_Validation": "BYPASSED_TOKEN_REPLAY",
-        "status": "FLAGGED"
+        "mfa_validation": "BYPASSED_TOKEN_REPLAY",
+        "dpop_proof_status": "MISSING_OR_STOLEN",
+        "status": "FLAGGED_FRAUD",
+        "mitre": "T1550.004"
     },
     {
-        "timestamp": "2026-10-16T21:54:29.971021+00:00",
-        "event_id": "EVT-9003",
-        "source": "CoreBanking_DB",
+        "timestamp": "2026-10-16T22:57:09.729550+00:00",
+        "event_id": "EXFIL-003",
+        "source": "CoreBanking_DAM",
         "user": "dba_temp_support",
         "ip": "192.168.50.88",
         "action": "SELECT_BULK",
         "table": "Socios_Clientes",
         "rows_returned": 4850,
-        "status": "SUCCESS"
+        "status": "ANOMALY_MASS_EXFILTRATION",
+        "mitre": "T1530"
+    },
+    {
+        "timestamp": "2026-10-16T22:59:09.729550+00:00",
+        "event_id": "PERSIST-004",
+        "source": "ActiveDirectory_Core",
+        "user": "compromised_admin_svc",
+        "ip": "10.100.4.12",
+        "action": "ADD_MEMBER_TO_DOMAIN_ADMINS",
+        "target_account": "shadow_admin_backdoor",
+        "status": "PRIVILEGE_ESCALATION",
+        "mitre": "T1098"
     }
 ]
