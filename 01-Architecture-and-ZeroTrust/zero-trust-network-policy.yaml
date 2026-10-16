@@ -1,0 +1,77 @@
+# =========================================================================================
+# ZERO TRUST NETWORK MICROSEGMENTATION: KUBERNETES / CILIUM NETWORK POLICY
+# Arquitectura: Core Financiero & Base de Datos Bancaria
+# Cumplimiento: PCI-DSS v4.0.1 Req 1.2 & 1.3 | NIST SP 800-207 (Zero Trust Architecture)
+# Estándares: 2026-2027 Microsegmentación L4/L7 e Inmutabilidad de Tráfico Lateral
+# =========================================================================================
+
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: finsec-corebanking-zero-trust
+  namespace: banking-production
+  labels:
+    tier: critical-core-db
+    data-classification: lopdp-sensitive
+    pci-scope: in-scope
+spec:
+  endpointSelector:
+    matchLabels:
+      app: core-banking-db
+      environment: production
+
+  # 1. POLÍTICA POR DEFECTO: DENEGAR TODO TRÁFICO ENTRANTE (Default-Deny Ingress)
+  ingress:
+    # Permitir únicamente conexiones desde el API Gateway transaccional autenticado
+    - fromEndpoints:
+        - matchLabels:
+            app: financial-api-gateway
+            tier: dmz-service-mesh
+            identity: spiffe://bank.ec/ns/banking-production/sa/api-gateway-sa
+      toPorts:
+        - ports:
+            - port: "1433"
+              protocol: TCP
+          rules:
+            # Inspección L7 mTLS con certificados SPIFFE/SPIRE (Estándar Zero Trust 2026+)
+            http:
+              - method: "POST"
+                path: "^/v1/internal/transactions/.*$"
+
+    # Tráfico de Telemetría y DAM (Database Activity Monitoring) para Sentinel / SIEM
+    - fromEndpoints:
+        - matchLabels:
+            app: azure-arc-sentinel-agent
+            namespace: monitoring-secops
+      toPorts:
+        - ports:
+            - port: "25226" # Azure OMS / Sentinel Syslog Collector Forwarder
+              protocol: TCP
+
+  # 2. POLÍTICA POR DEFECTO: DENEGAR TODO TRÁFICO SALIENTE NO AUTORIZADO (Default-Deny Egress)
+  # Previene mitigando completamente ataques de Reverse Shell y C2 (Command & Control)
+  egress:
+    # Exclusivamente permitido enviar logs hacia el SIEM y consultar DNS interno seguro
+    - toEndpoints:
+        - matchLabels:
+            k8s-app: kube-dns
+            namespace: kube-system
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+          rules:
+            dns:
+              - matchPattern: "*.internal.bank.ec"
+
+    # Enlace cifrado hacia el repositorio de Auditoría Inmutable (WORM Storage)
+    - toEndpoints:
+        - matchLabels:
+            app: worm-audit-vault
+            namespace: secops-archive
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
